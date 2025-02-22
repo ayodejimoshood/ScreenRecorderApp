@@ -1,5 +1,6 @@
-import RNScreenRecorder from 'react-native-screen-recorder';
+import RecordScreen from 'react-native-record-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Platform } from 'react-native';
 
 export interface RecordingSettings {
     maxDuration: number;
@@ -52,28 +53,83 @@ class ScreenRecorder {
         return false;
       }
 
-      // Start screen recording
-      await RNScreenRecorder.startRecording({
-        mic: settings.includeMicrophone,
-        quality: settings.quality === 'high' ? 2 : settings.quality === 'medium' ? 1 : 0,
-        maxDuration: settings.maxDuration
-      });
+      // Clean up any existing recordings
+      await RecordScreen.clean();
 
-      this.isRecording = true;
-      this.recordingStartTime = Date.now();
-      this.startStatusUpdates();
+      if (Platform.OS === 'ios') {
+        return new Promise((resolve) => {
+          Alert.alert(
+            'Screen Recording',
+            'Please start screen recording from Control Center when prompted',
+            [
+              {
+                text: 'Start Recording',
+                onPress: async () => {
+                  try {
+                    // Start screen recording with error handling
+                    await RecordScreen.startRecording({
+                      mic: settings.includeMicrophone,
+                      quality: settings.quality === 'high' ? 2 : settings.quality === 'medium' ? 1 : 0,
+                      width: 1280,
+                      height: 720,
+                      bitrate: settings.quality === 'high' ? 12000000 : settings.quality === 'medium' ? 8000000 : 4000000
+                    });
 
-      if (settings.maxDuration > 0) {
-        this.recordingTimer = setTimeout(() => {
-          if (this.isRecording) {
-            this.stopRecording();
-          }
-        }, settings.maxDuration * 1000);
+                    this.isRecording = true;
+                    this.recordingStartTime = Date.now();
+                    this.startStatusUpdates();
+
+                    if (settings.maxDuration > 0) {
+                      this.recordingTimer = setTimeout(() => {
+                        if (this.isRecording) {
+                          this.stopRecording();
+                        }
+                      }, settings.maxDuration * 1000);
+                    }
+
+                    resolve(true);
+                  } catch (error) {
+                    console.error('Error in startRecording:', error);
+                    Alert.alert('Error', 'Failed to start screen recording. Please make sure you have granted the necessary permissions.');
+                    resolve(false);
+                  }
+                },
+              },
+              {
+                text: 'Cancel',
+                style: 'cancel',
+                onPress: () => resolve(false),
+              },
+            ],
+          );
+        });
+      } else {
+        // Android implementation
+        await RecordScreen.startRecording({
+          mic: settings.includeMicrophone,
+          quality: settings.quality === 'high' ? 2 : settings.quality === 'medium' ? 1 : 0,
+          width: 1280,
+          height: 720,
+          bitrate: settings.quality === 'high' ? 12000000 : settings.quality === 'medium' ? 8000000 : 4000000
+        });
+
+        this.isRecording = true;
+        this.recordingStartTime = Date.now();
+        this.startStatusUpdates();
+
+        if (settings.maxDuration > 0) {
+          this.recordingTimer = setTimeout(() => {
+            if (this.isRecording) {
+              this.stopRecording();
+            }
+          }, settings.maxDuration * 1000);
+        }
+
+        return true;
       }
-
-      return true;
     } catch (error) {
       console.error('Error starting recording:', error);
+      Alert.alert('Error', 'Failed to start screen recording. Please make sure you have granted the necessary permissions.');
       return false;
     }
   }
@@ -92,10 +148,18 @@ class ScreenRecorder {
       }
 
       // Stop screen recording and get the video file path
-      const videoPath = await RNScreenRecorder.stopRecording();
+      const result = await RecordScreen.stopRecording().catch((error) => {
+        console.error('Error in stopRecording:', error);
+        Alert.alert('Error', 'Failed to stop screen recording.');
+        throw error;
+      });
+      
       this.isRecording = false;
 
-      return videoPath;
+      if (result?.result?.outputURL) {
+        return result.result.outputURL;
+      }
+      return null;
     } catch (error) {
       console.error('Error stopping recording:', error);
       return null;

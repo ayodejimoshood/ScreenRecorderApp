@@ -19,7 +19,8 @@
     "react-native-record-screen": "^0.6.2",
     "react-native-safe-area-context": "^4.14.1",
     "react-native-screen-recorder": "^1.0.6",
-    "react-native-screens": "^3.35.0"
+    "react-native-screens": "^3.35.0",
+    "react-native-svg": "^15.11.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

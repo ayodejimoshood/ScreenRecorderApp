@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SettingsIcon from './SettingsIcon';
 
 interface FloatingButtonsProps {
   onRecord: () => void;
@@ -38,7 +39,7 @@ const FloatingButtons: React.FC<FloatingButtonsProps> = ({
         style={[styles.button, styles.settingsButton]}
         onPress={onSettings}
       >
-        <View style={styles.settingsIcon} />
+        <SettingsIcon color="white" size={24} />
       </TouchableOpacity>
     </View>
   );
@@ -80,13 +81,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     backgroundColor: 'white',
-  },
-  settingsIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 2,
-    borderWidth: 2,
-    borderColor: 'white',
   },
 });
 
